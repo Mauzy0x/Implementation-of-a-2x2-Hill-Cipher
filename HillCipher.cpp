@@ -1,13 +1,5 @@
-/*
-*
-*
-*
-*
-*
-*
-*/
-
 #include <ctime>
+#include <chrono>
 #include "matrixFunctions.h"
 
 
@@ -15,6 +7,7 @@
 string HillCipher(string, string, unsigned short);
 void encrypt(int[2][2], int[2][2], int[2][2]);
 void decrypt(int[2][2], int[2][2], int[2][2]);
+void attack_key(string, string);
 
 
 int main() {
@@ -28,6 +21,13 @@ int main() {
     string key;
     cout << "Enter the key (length 4): ";
     cin >> key;
+
+// Encryption
+    cout << "______________________________\n"
+         << "Encryption:\n\n";
+
+    // Get the start time
+    auto encryption_start = std::chrono::high_resolution_clock::now();
 
     // Prep plaintext
     // Remove all spaces from the string
@@ -46,12 +46,21 @@ int main() {
         string chunk = plain_message.substr(index, 4);
         cipher_text += HillCipher(chunk, key, 0); 
     }
-    cout << "Encrypted Message: " << cipher_text << "\n\n";
+    cout << "Encrypted Message: " << cipher_text << "\n";
 
+    // Get the end time
+    auto encryption_end = std::chrono::high_resolution_clock::now();
 
-    // Decryption
+    // Calculate and print the elapsed time
+    auto encryption_duration = std::chrono::duration_cast<std::chrono::microseconds>(encryption_end - encryption_start);
+    cout << "Encryption time: " << encryption_duration.count() << " microseconds" << endl;
+
+// Decryption
     cout << "==========================\n"
          << "Decryption:\n\n";
+
+    // Get the start time
+    auto decryption_start = std::chrono::high_resolution_clock::now();
 
     string decrypted_message;
     // Decrypt in blocks of 4 characters
@@ -59,7 +68,31 @@ int main() {
         string chunk = cipher_text.substr(index, 4);
         decrypted_message += HillCipher(chunk, key, 1);
     }
-    cout << "Decrypted Message: " << plain_message << endl;
+    cout << "Decrypted Message: " << decrypted_message << endl;
+
+    // Get the end time
+    auto decryption_end = std::chrono::high_resolution_clock::now();
+    // Calculate and print the elapsed time
+    auto decryption_duration = std::chrono::duration_cast<std::chrono::microseconds>(decryption_end - decryption_start);
+    cout << "Decryption time: " << decryption_duration.count() << " microseconds" << endl;
+
+// Known plaintext attack
+    cout << "==========================\n"
+         << "Known Plaintext Attack:\n\n";
+
+    // Get the start time
+    auto attack_start = std::chrono::high_resolution_clock::now();
+
+    // Capture the first 4 characters of the plain message 
+    string captured_text = plain_message.substr(0, 4);
+    string cipher_block = cipher_text.substr(0, 4);
+    attack_key(captured_text, cipher_block);
+
+    // Get the end time
+    auto attack_end = std::chrono::high_resolution_clock::now();
+    // Calculate and print the elapsed time
+    auto attack_duration = std::chrono::duration_cast<std::chrono::microseconds>(attack_end - attack_start);
+    cout << "Attack time: " << attack_duration.count() << " microseconds" << endl;
 
     exit(EXIT_SUCCESS);
 } // end main
@@ -73,13 +106,19 @@ string HillCipher(string message, string key, unsigned short crypt) {
 
     // Get key matrix from the key string
     int keyMatrix[2][2];
-    cout << "Key Matrix: \n";
     string_toMatrix(key, keyMatrix);
+
+    cout << "\nKey Matrix: \n";
+    print_matrix(keyMatrix);
+
     
+
     // Get message matrix from the message string
     int messageMatrix[2][2];
-    cout << "Message Matrix: \n";
     string_toMatrix(message, messageMatrix);
+
+    cout << "Message Matrix: \n";
+    print_matrix(messageMatrix);
 
 
     if (crypt == 0) {   // Encryption
@@ -108,48 +147,50 @@ string HillCipher(string message, string key, unsigned short crypt) {
 } // end HillCipher
 
 // C = E (P, K) = P ∙ K (mod 26)
-void encrypt(int cipher_matrix[2][2], int key_matrix[2][2], int message_matrix[2][2]) {
+void encrypt(int cipherMatrix[2][2], int keyMatrix[2][2], int messageMatrix[2][2]) {
 
-    int x; 
-    for (int row_index = 0; row_index < 2; row_index++) 
-    { // Row
-        for (int column_index = 0; column_index < 2; column_index++)
-        { // Column
-            cipher_matrix[row_index][column_index] = 0;    // Zero out index
+    multiply_matrix(messageMatrix, keyMatrix, cipherMatrix);
 
-            // Matrix Multipkication P * K 
-            for (x = 0; x < 2; x++) {
-                int beep =cipher_matrix[row_index][column_index];
-                cipher_matrix[row_index][column_index] += message_matrix[row_index][x] * key_matrix[x][column_index];
-                //cout << message_matrix[row_index][x] << " * " << key_matrix[x][column_index] << " + " << beep << " = " << cipher_matrix[row_index][column_index] << endl;
-            }
-            cipher_matrix[row_index][column_index] = cipher_matrix[row_index][column_index] % 26;
-        }
-    }
 } // end encrypt
 
 //  P = D (C, K) = C∙ K−1 (mod 26) = P ∙ K ∙ K−1 (mod 26)
-void decrypt(int plain_matrix[2][2], int key_matrix[2][2], int cipher_matrix[2][2]) {
+void decrypt(int plainMatrix[2][2], int keyMatrix[2][2], int cipherMatrix[2][2]) {
 
-    invert_matrix(key_matrix);
+    invert_matrix(keyMatrix);
+
     cout << "Inverted Key Matrix:\n";
-    cout << key_matrix[0][0] << " ";
-    cout << key_matrix[0][1] << endl;
-    cout << key_matrix[1][0] << " ";
-    cout << key_matrix[1][1] << "\n\n";
+    print_matrix(keyMatrix);
+    cout << "\n\n";
 
-    int x; 
-    for (int row_index = 0; row_index < 2; row_index++) 
-    { // Row
-        for (int column_index = 0; column_index < 2; column_index++)
-        { // Column
-            plain_matrix[row_index][column_index] = 0;    // Zero out index
+    multiply_matrix(cipherMatrix, keyMatrix, plainMatrix);
 
-            // Matrix Multipkication P * K^-1 
-            for (x = 0; x < 2; x++) {
-                plain_matrix[row_index][column_index] += cipher_matrix[row_index][x] * key_matrix[x][column_index];
-            }
-            plain_matrix[row_index][column_index] = plain_matrix[row_index][column_index] % 26;
-        }
-    }
 } // end decrypt
+
+
+void attack_key(string captured_text, string ciphertext_block) {
+    
+    // Convert strings to a matrix
+    cout << "\nCaptured text Matrix:\n";
+    int capturedMatrix[2][2];
+    string_toMatrix(captured_text, capturedMatrix);
+    print_matrix(capturedMatrix);
+
+
+    cout << "\nCipher Block Matrix:\n";
+    int cipherBlockMatrix[2][2];
+    string_toMatrix(ciphertext_block, cipherBlockMatrix);
+    print_matrix(cipherBlockMatrix);
+
+    // Invert the plaintext
+    cout << "Inverted Plaintext Matrix:\n";
+    invert_matrix(capturedMatrix);
+    print_matrix(capturedMatrix);
+
+    // P^-1 * C
+    int keyMatrix[2][2];
+    multiply_matrix(capturedMatrix, cipherBlockMatrix, keyMatrix);
+
+    cout << "\n\nKey matrix:\n";
+    print_matrix(keyMatrix);
+
+} // end attack_keycaptured_matrix 
