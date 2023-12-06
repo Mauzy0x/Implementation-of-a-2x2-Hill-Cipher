@@ -1,5 +1,6 @@
 # Basic implementation of a 2x2 Hill Cipher in C++
 ## Example output:
+```
 Enter your message: Hill Cipher
 Enter the key (length 4): dcif
 ______________________________
@@ -89,3 +90,4 @@ Key matrix:
 3 2 
 8 5 
 Attack time: 37 microseconds
+```
